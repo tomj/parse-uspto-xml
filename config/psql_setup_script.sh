@@ -1,13 +1,15 @@
 DATABASE_PASS='enter password here.'
 DATABASE_USER='patent_manager'
 DATABASE_NAME='uspto_patents'
+DATABASE_HOST='127.0.0.1'
+DATABASE_PORT=5432
 
 psql -c "CREATE ROLE $DATABASE_USER WITH LOGIN PASSWORD '$DATABASE_PASS';"
 psql -c "CREATE DATABASE $DATABASE_NAME;"
 psql -d $DATABASE_NAME -c "GRANT ALL PRIVILEGES ON DATABASE $DATABASE_NAME TO $DATABASE_USER;"
 
 
-psql -h $DATABASE_HOST -p $DATABASE_PORT -U $DATABASE_USER password='$DATABASE_PASS' -d $DATABASE_NAME << PSQL
+export PGPASSWORD=$DATABASE_PASS; psql -h $DATABASE_HOST -p $DATABASE_PORT -U $DATABASE_USER -d $DATABASE_NAME << PSQL
 CREATE TABLE IF NOT EXISTS uspto_patents(
        publication_number VARCHAR,
        publication_title VARCHAR,
@@ -73,14 +75,14 @@ DO \$\$
 BEGIN
     IF (select Substr(setting, 1, strpos(setting, '.')-1) from pg_settings where name = 'server_version')::INTEGER = 15 THEN
         --FOR PSQL >= 15 which allows null not distinct
-        --CREATE UNIQUE INDEX IF NOT EXISTS patent_reference_constraint on uspto_referential_documents
-        --    (uspto_publication_number, reference, document_type, country, (kind)) NULLS NOT DISTINCT;
-        RAISE WARNING 'UNCOMMENT THIS SECTION FOR PSQL>=15; NO INDEXES APPLIED';
-    ELSE
-        --FOR PSQL < 15
-        CREATE UNIQUE INDEX IF NOT EXISTS patent_reference_constraint_null on uspto_referential_documents
-            (uspto_publication_number, COALESCE(reference, ''), document_type, COALESCE(country, ''), COALESCE(kind, ''));
-    END IF;
+--CREATE UNIQUE INDEX IF NOT EXISTS patent_reference_constraint on uspto_referential_documents
+--    (uspto_publication_number, reference, document_type, country, (kind)) NULLS NOT DISTINCT;
+RAISE WARNING 'UNCOMMENT THIS SECTION FOR PSQL>=15; NO INDEXES APPLIED';
+ELSE
+--FOR PSQL < 15
+CREATE UNIQUE INDEX IF NOT EXISTS patent_reference_constraint_null on uspto_referential_documents
+(uspto_publication_number, COALESCE(reference, ''), document_type, COALESCE(country, ''), COALESCE(kind, ''));
+END IF;
 END
 \$\$;
 
